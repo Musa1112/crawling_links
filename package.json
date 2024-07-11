@@ -1,0 +1,19 @@
+{
+  "name": "crawling_links",
+  "version": "1.0.0",
+  "description": "This crawler visit a bot dictation site, trying to bypass the dictation and also crawl the links to depth of 3",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@fast-csv/format": "^5.0.0",
+    "dotenv": "^16.4.5",
+    "fs": "^0.0.1-security",
+    "puppeteer": "^22.12.1"
+  }
+}
