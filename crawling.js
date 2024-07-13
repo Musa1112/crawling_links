@@ -43,12 +43,16 @@ dotenv.config();
         'Accept-Language': 'en-US,en;q=0.9',
     });
 
-    // Set Viewport and Screen Size (not necessary since defaultViewport is set)
-    // await page.setViewport({
-    //     width: 1920,
-    //     height: 1080,
-    //     deviceScaleFactor: 1
-    // });
+    // Intercept requests to block unnecessary resources
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+        const resourceType = req.resourceType();
+        if (resourceType === 'image' || resourceType === 'stylesheet' || resourceType === 'font') {
+            req.abort();
+        } else {
+            req.continue();
+        }
+    });
 
     // Set Timezone
     await page.emulateTimezone('Africa/Lagos');
@@ -133,8 +137,10 @@ dotenv.config();
     let visited = new Set();
     // Target depth
     const targetDepth = 3;
+    // Maximum requests
+    const maxRequests = 500;
 
-    // Array to store extracted links
+    // Array to store extracted links with their depth
     let collectedLinks = [];
 
     // Function to extract links from a page
@@ -145,7 +151,7 @@ dotenv.config();
         });
     };
 
-    while (queue.length > 0) {
+    while (queue.length > 0 && collectedLinks.length < maxRequests) {
         // Dequeue a URL and its depth
         const { url: currentURL, depth: currentDepth } = queue.shift();
 
@@ -160,8 +166,8 @@ dotenv.config();
             // Mark the URL as visited
             visited.add(currentURL);
 
-            // Collect the current URL
-            collectedLinks.push(currentURL);
+            // Collect the current URL with its depth
+            collectedLinks.push({ url: currentURL, depth: currentDepth });
 
             // If the current depth is less than the target depth, extract links and add them to the queue
             if (currentDepth < targetDepth) {
@@ -174,14 +180,14 @@ dotenv.config();
             }
 
             // Optional: wait for a short period to avoid overloading the server
-            await sleep(1000);
+            await sleep(500);  // Reduced sleep time for faster crawling
         } catch (error) {
             console.error('Error visiting URL:', currentURL, error);
         }
     }
 
-    // Write the collected links to a CSV file
-    const csvStream = format({ headers: ['URL'] });
+    // Write the collected links to a CSV file with their depths
+    const csvStream = format({ headers: ['URL', 'Depth'] });
     const writableStream = fs.createWriteStream('collected_links.csv');
 
     writableStream.on('finish', () => {
@@ -189,8 +195,8 @@ dotenv.config();
     });
 
     csvStream.pipe(writableStream);
-    collectedLinks.forEach(link => {
-        csvStream.write({ URL: link });
+    collectedLinks.forEach(({ url, depth }) => {
+        csvStream.write({ URL: url, Depth: depth });
     });
     csvStream.end();
 
